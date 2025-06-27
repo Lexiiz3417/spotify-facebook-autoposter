@@ -1,12 +1,17 @@
 name: Spotify to Facebook Autoposter
 
 on:
-  # 1. Untuk menjalankan secara manual dari tab Actions
+  # 1. BARU: Menjalankan otomatis setiap kali ada push ke branch 'main'
+  push:
+    branches:
+      - main
+
+  # 2. Untuk menjalankan secara manual dari tab Actions
   workflow_dispatch:
 
-  # 2. Untuk menjalankan sesuai jadwal
+  # 3. Untuk menjalankan sesuai jadwal
   schedule:
-    # Menjalankan setiap hari pada jam 03:00 pagi WIB (yaitu jam 20:00 UTC di hari sebelumnya)
+    # Menjalankan setiap hari pada jam 03:00 pagi WIB (20:00 UTC di hari sebelumnya)
     - cron: '0 20 * * *'
 
 jobs:
