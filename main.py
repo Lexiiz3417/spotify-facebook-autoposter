@@ -3,7 +3,7 @@ import requests
 import random
 
 def dapatkan_lagu_dari_playlist():
-    """Mengambil satu lagu acak dari playlist Spotify."""
+    """Mengambil satu lagu acak beserta cover albumnya dari playlist Spotify."""
     client_id = os.environ.get('SPOTIFY_CLIENT_ID')
     client_secret = os.environ.get('SPOTIFY_CLIENT_SECRET')
     playlist_id = os.environ.get('SPOTIFY_PLAYLIST_ID')
@@ -32,8 +32,13 @@ def dapatkan_lagu_dari_playlist():
     nama_artis = lagu_terpilih['artists'][0]['name']
     url_spotify = lagu_terpilih['external_urls']['spotify']
     
+    # --- BARIS BARU: Mengambil URL cover album ---
+    # Spotify menyediakan beberapa ukuran, kita ambil yang paling besar (pertama di daftar)
+    url_cover_album = lagu_terpilih['album']['images'][0]['url']
+    
     print(f"Lagu terpilih: {nama_lagu} oleh {nama_artis}")
-    return nama_lagu, nama_artis, url_spotify
+    # --- DIUBAH: Mengembalikan URL cover album juga ---
+    return nama_lagu, nama_artis, url_spotify, url_cover_album
 
 def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
     """Mengonversi URL Spotify menjadi URL song.link universal."""
@@ -47,38 +52,45 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
         print(f"Gagal mengonversi link, error: {e}")
     return spotify_url
 
-def posting_ke_facebook(pesan: str):
-    """Mengirim pesan ke Halaman Facebook."""
+# --- FUNGSI DIUBAH: Untuk memposting FOTO dengan CAPTION ---
+def posting_ke_facebook(pesan: str, url_gambar: str):
+    """Mengirim FOTO dengan caption ke Halaman Facebook."""
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    print("Mempersiapkan untuk posting ke Facebook...")
-    url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
+    print("Mempersiapkan untuk posting foto ke Facebook...")
+    # --- DIUBAH: Endpoint diubah dari /feed menjadi /photos ---
+    url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
     params = {
-        'message': pesan,
+        # --- DIUBAH: 'message' menjadi 'caption' untuk post foto ---
+        'caption': pesan,
+        # --- BARIS BARU: Menambahkan URL gambar yang akan diposting ---
+        'url': url_gambar,
         'access_token': access_token
     }
     response = requests.post(url, params=params)
     response.raise_for_status()
-    print("Berhasil memposting ke Facebook!")
+    print("Berhasil memposting foto ke Facebook!")
 
 if __name__ == "__main__":
     try:
         print("Memulai proses autoposter...")
-        nama_lagu, nama_artis, url_spotify = dapatkan_lagu_dari_playlist()
+        # --- DIUBAH: Menerima 4 nilai dari fungsi ---
+        nama_lagu, nama_artis, url_spotify, url_cover_album = dapatkan_lagu_dari_playlist()
         url_universal = dapatkan_songlink_dari_spotify(url_spotify)
         
-        pesan_post = f"""🎧 Lagu Hari Ini 🎶
+        pesan_post = f"""🎧 Song of the Day 🎶
 
-🎵 Judul: {nama_lagu}
-🎤 Artis: {nama_artis}
+🎵 Title: {nama_lagu}
+🎤 Artist: {nama_artis}
 
-Dengarkan di platform favoritmu melalui link universal ini:
+Listen on your favorite platform:
 {url_universal}
 
-#LaguHarian #MusicDiscovery #SpotifyAutopost"""
+#SongoftheDay #MusicDiscovery #NowPlaying"""
         
-        posting_ke_facebook(pesan_post)
+        # --- DIUBAH: Mengirim pesan dan URL gambar ke fungsi posting ---
+        posting_ke_facebook(pesan_post, url_cover_album)
         print("Proses selesai dengan sukses.")
     except Exception as e:
         print(f"Terjadi error: {e}")
