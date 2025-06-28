@@ -66,4 +66,4 @@ Listen on your favorite platform:
         print("Proses selesai dengan sukses.")
         
     except Exception as e:
-        print(f"Terjadi error: {e}")
+        print(f"Terjadi error: {e}") #bismillah 
