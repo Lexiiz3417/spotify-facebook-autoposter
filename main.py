@@ -42,13 +42,28 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
 if __name__ == "__main__":
     try:
         print("Memulai proses autoposter...")
-
+        
         # Logika baru untuk menghitung hari berdasarkan tanggal mulai
         start_date = date(2025, 6, 28) # Format: TAHUN, BULAN, TANGGAL
         today_date = date.today()
+        # Hitung selisih hari dan tambahkan 1
         day_number = (today_date - start_date).days + 1
-
+        
         nama_lagu, nama_artis, url_spotify, url_cover_album = dapatkan_lagu_dari_playlist()
         url_universal = dapatkan_songlink_dari_spotify(url_spotify)
-
+        
         pesan_post = f"""Daily Music (Day {day_number})
+
+🎵 Title: {nama_lagu}
+🎤 Artist: {nama_artis}
+
+Listen on your favorite platform:
+{url_universal}
+
+#SongoftheDay #MusicDiscovery #NowPlaying"""
+        
+        posting_ke_facebook(pesan_post, url_cover_album)
+        print("Proses selesai dengan sukses.")
+        
+    except Exception as e:
+        print(f"Terjadi error: {e}")
