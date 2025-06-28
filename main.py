@@ -1,7 +1,7 @@
 import os
 import requests
 import random
-
+# Final test!
 def dapatkan_lagu_dari_playlist():
     """Mengambil satu lagu acak beserta cover albumnya dari playlist Spotify."""
     client_id = os.environ.get('SPOTIFY_CLIENT_ID')
