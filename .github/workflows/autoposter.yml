@@ -1,12 +1,8 @@
 name: Spotify to Facebook Autoposter
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
   schedule:
-    # Menjalankan setiap hari pada jam 03:00 pagi WIB (20:00 UTC di hari sebelumnya)
     - cron: '0 20 * * *'
 
 jobs:
@@ -26,10 +22,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          
+
       - name: Jalankan Skrip Autoposter
         env:
-          DAY_NUMBER: ${{ github.run_number }}
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           SPOTIFY_PLAYLIST_ID: ${{ secrets.SPOTIFY_PLAYLIST_ID }}
