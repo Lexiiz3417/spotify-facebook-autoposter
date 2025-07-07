@@ -54,24 +54,28 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
     return spotify_url
 
 # --- FUNGSI POSTING BARU DENGAN TARGET ALBUM & TIMELINE ---
+# --- FUNGSI POSTING BARU DENGAN TARGET ALBUM & TIMELINE (PLUS DEBUGGING) ---
 def posting_ke_facebook(pesan: str, url_gambar: str):
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
-    album_id = os.environ.get('FACEBOOK_ALBUM_ID') # Ambil ID Album dari secret
+    album_id = os.environ.get('FACEBOOK_ALBUM_ID') 
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
     # --- LANGKAH 1: Upload foto ke ALBUM SPESIFIK ---
     print(f"🟢 Langkah 1: Mengunggah foto ke album ID: {album_id}...")
-    # Ganti endpoint untuk menargetkan album secara spesifik
     photo_upload_url = f"https://graph.facebook.com/v20.0/{album_id}/photos"
     
     photo_payload = {
         'url': url_gambar,
-        # 'published' tidak diperlukan lagi karena kita akan buat postingan terpisah
-        # Cukup upload ke album, lalu ID fotonya kita pakai
         'access_token': access_token
     }
     
     r_photo = requests.post(photo_upload_url, data=photo_payload)
+    
+    # --- TAMBAHAN DEBUGGING ---
+    print("📢 Respons dari upload foto:")
+    print(r_photo.json()) # Kita print responsnya biar keliatan
+    # -------------------------
+
     r_photo.raise_for_status()
     photo_data = r_photo.json()
     photo_id = photo_data['id']
@@ -82,15 +86,20 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
     feed_post_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
     feed_payload = {
         'message': pesan,
-        'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}', # Lampirkan foto pake ID
+        'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}',
         'access_token': access_token
     }
 
     r_feed = requests.post(feed_post_url, data=feed_payload)
+
+    # --- TAMBAHAN DEBUGGING ---
+    print("📢 Respons dari post ke feed:")
+    print(r_feed.json()) # Kita print juga respons dari feed
+    # -------------------------
+
     r_feed.raise_for_status()
     print("✅ Postingan berhasil dipublikasikan ke timeline!")
-
-
+    
 if __name__ == "__main__":
     try:
         print("🟢 Memulai proses autoposting...")
