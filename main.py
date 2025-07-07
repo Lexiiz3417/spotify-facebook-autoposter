@@ -2,68 +2,165 @@ import os
 import requests
 import random
 from datetime import date
+from typing import Tuple
 
-def dapatkan_lagu_dari_playlist():
-    client_id, client_secret, playlist_id = os.environ.get('SPOTIFY_CLIENT_ID'), os.environ.get('SPOTIFY_CLIENT_SECRET'), os.environ.get('SPOTIFY_PLAYLIST_ID')
-    print("Mendapatkan token dari Spotify...")
-    auth_response = requests.post("https://accounts.spotify.com/api/token", {'grant_type': 'client_credentials','client_id': client_id,'client_secret': client_secret,})
+def dapatkan_lagu_dari_playlist() -> Tuple[str, str, str, str, str]:
+    client_id = os.environ.get('SPOTIFY_CLIENT_ID')
+    client_secret = os.environ.get('SPOTIFY_CLIENT_SECRET')
+    playlist_id = os.environ.get('SPOTIFY_PLAYLIST_ID')
+
+    print("🟢 Mendapatkan token dari Spotify...")
+    auth_response = requests.post("https://accounts.spotify.com/api/token", {
+        'grant_type': 'client_credentials',
+        'client_id': client_id,
+        'client_secret': client_secret,
+    })
     auth_response.raise_for_status()
     access_token = auth_response.json()['access_token']
-    print(f"Mengambil lagu dari playlist ID: {playlist_id}")
     headers = {'Authorization': f'Bearer {access_token}'}
+
+    print(f"🟢 Mengambil lagu dari playlist ID: {playlist_id}")
     playlist_response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", headers=headers)
     playlist_response.raise_for_status()
     items = playlist_response.json().get('items', [])
-    if not items: raise ValueError("Playlist kosong atau tidak bisa diakses.")
+    if not items:
+        raise ValueError("Playlist kosong atau tidak bisa diakses.")
+
     lagu_terpilih = random.choice(items)['track']
-    nama_lagu, nama_artis = lagu_terpilih['name'], lagu_terpilih['artists'][0]['name']
-    url_spotify, url_cover_album = lagu_terpilih['external_urls']['spotify'], lagu_terpilih['album']['images'][0]['url']
-    print(f"Lagu terpilih: {nama_lagu} oleh {nama_artis}")
-    return nama_lagu, nama_artis, url_spotify, url_cover_album
+    nama_lagu = lagu_terpilih['name']
+    nama_artis = lagu_terpilih['artists'][0]['name']
+    artis_id = lagu_terpilih['artists'][0]['id']
+    url_spotify = lagu_terpilih['external_urls']['spotify']
+    url_cover_album = lagu_terpilih['album']['images'][0]['url']
+
+    print(f"🟢 Mengambil genre dari artis: {nama_artis}")
+    artist_response = requests.get(f"https://api.spotify.com/v1/artists/{artis_id}", headers=headers)
+    artist_response.raise_for_status()
+    genres = artist_response.json().get('genres', [])
+    genre_utama = genres[0] if genres else "Music"
+
+    print(f"Lagu terpilih: {nama_lagu} oleh {nama_artis} | Genre: {genre_utama}")
+    return nama_lagu, nama_artis, url_spotify, url_cover_album, genre_utama
 
 def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
-    print(f"Mengonversi link Spotify: {spotify_url}")
+    print(f"🟢 Mengonversi link Spotify...")
     api_endpoint = "https://api.song.link/v1-alpha.1/links"
     try:
         response = requests.get(api_endpoint, params={'url': spotify_url}, timeout=10)
-        if response.status_code == 200: return response.json().get('pageUrl', spotify_url)
-    except requests.RequestException as e: print(f"Gagal mengonversi link, error: {e}")
+        if response.status_code == 200:
+            return response.json().get('pageUrl', spotify_url)
+    except requests.RequestException as e:
+        print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
 
-def posting_ke_facebook(pesan: str, url_gambar: str):
-    page_id, access_token = os.environ.get('FACEBOOK_PAGE_ID'), os.environ.get('FACEBOOK_ACCESS_TOKEN')
-    print("Mempersiapkan untuk posting foto ke Facebook...")
-    url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
-    params = {'caption': pesan, 'url': url_gambar, 'access_token': access_token}
-    response = requests.post(url, params=params)
-    response.raise_for_status()
-    print("Berhasil memposting foto ke Facebook!")
+def posting_ke_facebook(pesan: str, url_gambar: str, day_number: int, artist_name: str):
+    album_id, page_id, access_token = os.environ.get('FACEBOOK_ALBUM_ID'), os.environ.get('FACEBOOK_PAGE_ID'), os.environ.get('FACEBOOK_ACCESS_TOKEN')
+    
+    print(f"🟢 Langkah A: Mengunggah foto ke album ID: {album_id}...")
+    upload_url = f"https://graph.facebook.com/v20.0/{album_id}/photos"
+    upload_params = {'url': url_gambar, 'published': 'false', 'access_token': access_token}
+    upload_response = requests.post(upload_url, params=upload_params)
+    upload_response.raise_for_status()
+    photo_id = upload_response.json()['id']
+    print(f"Foto berhasil diunggah: {photo_id}")
+
+    print("🟢 Langkah B: Posting ke feed...")
+    feed_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
+    feed_params = {'message': pesan, 'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}', 'access_token': access_token}
+    feed_response = requests.post(feed_url, params=feed_params)
+    feed_response.raise_for_status()
+    post_id = feed_response.json()['id']
+    print(f"Berhasil posting di feed: {post_id}")
+
+    print(f"🟢 Langkah C: Auto-komen...")
+    comment_url = f"https://graph.facebook.com/v20.0/{post_id}/comments"
+    comment_message = f"Hey guys! Di Day {day_number}, aku share lagu dari {artist_name}. Menurut kalian gimana lagunya? Ada vibe yang sama di playlist kalian nggak? 🎧"
+    comment_params = {'message': comment_message, 'access_token': access_token}
+    comment_response = requests.post(comment_url, params=comment_params)
+    comment_response.raise_for_status()
+    print("Komentar berhasil dikirim.")
+
 
 if __name__ == "__main__":
     try:
-        print("Memulai proses autoposter...")
-        
-        # Logika baru untuk menghitung hari berdasarkan tanggal mulai
-        start_date = date(2025, 6, 28) # Format: TAHUN, BULAN, TANGGAL
+        print("🟢 Memulai proses autoposting...")
+        start_date = date(2025, 7, 7)
         today_date = date.today()
-        # Hitung selisih hari dan tambahkan 1
         day_number = (today_date - start_date).days + 1
-        
-        nama_lagu, nama_artis, url_spotify, url_cover_album = dapatkan_lagu_dari_playlist()
+
+        nama_lagu, nama_artis, url_spotify, url_cover_album, genre_utama = dapatkan_lagu_dari_playlist()
         url_universal = dapatkan_songlink_dari_spotify(url_spotify)
         
-        pesan_post = f"""Daily Music (Day {day_number})
+        # --- LOGIKA BARU: MENENTUKAN MOOD & TAGS BERDASARKAN GENRE ---
+        genre_lower = genre_utama.lower()
+        if "lo-fi" in genre_lower or "chill" in genre_lower:
+            mood = "🌙 Chill vibes detected!"
+            tags = "#LoFi #ChillBeats"
+        elif "rock" in genre_lower or "punk" in genre_lower:
+            mood = "⚡ Rock the day!"
+            tags = "#RockOn #AltRock"
+        elif "pop" in genre_lower:
+            mood = "🎤 Catchy pop anthem!"
+            tags = "#PopHits"
+        elif "r&b" in genre_lower or "soul" in genre_lower:
+            mood = "💜 Smooth and soulful"
+            tags = "#RnB #SoulMusic"
+        elif "hip hop" in genre_lower or "rap" in genre_lower:
+            mood = "🔥 Drop the beat!"
+            tags = "#HipHop #RapDaily"
+        elif "electronic" in genre_lower or "edm" in genre_lower or "bass" in genre_lower:
+            mood = "🎧 Electronic energy boost!"
+            tags = "#EDM #Electro"
+        elif "sad" in genre_lower or "acoustic" in genre_lower or "piano" in genre_lower:
+            mood = "🌧️ Soft, emotional tune"
+            tags = "#SadSongs #AcousticVibes"
+        else:
+            mood = "🎶 Your song of the day!"
+            tags = "#Vibes"
+        tag_umum = "#MusicDiscovery #SongOfTheDay #NowPlaying"
 
-🎵 Title: {nama_lagu}
-🎤 Artist: {nama_artis}
+        # --- MEMBUAT DUA TEMPLATE CAPTION LENGKAP ---
 
-Listen on your favorite platform:
-{url_universal}
+        # Template 1: Gaya Kucing Magis
+        caption_template_1 = f"""/ᐠ - ˕ -マ ⛧°. ⋆༺☾༻⋆. °⛧
+╭∪─∪────────── 𝄞⨾𓍢ִ໋,♫,♪
+┊ {mood}
+┊ Day {day_number} – Music Pick 🎧
+┊
+┊   🎵 {nama_lagu}
+┊   🎤 {nama_artis}
+┊   🎼 Genre: {genre_utama.title()}
+┊
+┊ Listen Now:
+┊ {url_universal}
+╰─────────────  𝄞⨾𓍢ִ໋,♫,♪
 
-#SongoftheDay #MusicDiscovery #NowPlaying"""
-        
-        posting_ke_facebook(pesan_post, url_cover_album)
-        print("Proses selesai dengan sukses.")
-        
+{tags} {tag_umum}"""
+
+        # Template 2: Gaya Minimalis Estetik
+        caption_template_2 = f"""⊹ ࣪ ﹏𓊝﹏𓂁﹏⊹ ࣪ ˖
+
+╭───────── 𝄞⨾𓍢ִ໋,♫,♪
+┊ {mood.upper()}
+┊ DAY {day_number}
+┊
+┊ Now Playing:
+┊ {nama_lagu} — {nama_artis}
+┊ ({genre_utama.title()})
+┊
+┊ {url_universal}
+╰─────────  𝄞⨾𓍢ִ໋,♫,♪
+
+{tags} {tag_umum}"""
+
+        # --- MEMILIH SALAH SATU TEMPLATE SECARA ACAK ---
+        list_of_captions = [caption_template_1, caption_template_2]
+        pesan_post = random.choice(list_of_captions)
+
+        print(f"Template caption yang terpilih: \n{pesan_post}")
+
+        posting_ke_facebook(pesan_post, url_cover_album, day_number, nama_artis)
+
+        print(f"✅ Postingan 'Day {day_number}' berhasil dipublikasikan.")
     except Exception as e:
-        print(f"Terjadi error: {e}") #bismillah 
+        print(f"❌ Error terdeteksi: {e}")
