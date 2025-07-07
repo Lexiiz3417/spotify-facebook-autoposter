@@ -2,7 +2,7 @@ import os
 import requests
 import random
 from datetime import date
-from typing import Tuple
+from typing import Tuple, Optional
 
 def dapatkan_lagu_dari_playlist() -> Tuple[str, str, str, str, str]:
     client_id = os.environ.get('SPOTIFY_CLIENT_ID')
@@ -53,35 +53,23 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
         print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
 
-# --- FUNGSI POSTING BARU DENGAN TARGET ALBUM & TIMELINE ---
-# --- FUNGSI POSTING BARU DENGAN TARGET ALBUM & TIMELINE (PLUS DEBUGGING) ---
-def posting_ke_facebook(pesan: str, url_gambar: str):
+def posting_ke_facebook(pesan: str, url_gambar: str) -> Optional[str]:
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
-    album_id = os.environ.get('FACEBOOK_ALBUM_ID') 
+    album_id = os.environ.get('FACEBOOK_ALBUM_ID')
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    # --- LANGKAH 1: Upload foto ke ALBUM SPESIFIK ---
     print(f"🟢 Langkah 1: Mengunggah foto ke album ID: {album_id}...")
     photo_upload_url = f"https://graph.facebook.com/v20.0/{album_id}/photos"
-    
-    photo_payload = {
-        'url': url_gambar,
-        'access_token': access_token
-    }
+    photo_payload = {'url': url_gambar, 'access_token': access_token}
     
     r_photo = requests.post(photo_upload_url, data=photo_payload)
-    
-    # --- TAMBAHAN DEBUGGING ---
-    print("📢 Respons dari upload foto:")
-    print(r_photo.json()) # Kita print responsnya biar keliatan
-    # -------------------------
+    if r_photo.status_code != 200:
+        print(f"❌ Gagal upload foto: {r_photo.text}")
+        r_photo.raise_for_status()
 
-    r_photo.raise_for_status()
-    photo_data = r_photo.json()
-    photo_id = photo_data['id']
+    photo_id = r_photo.json()['id']
     print(f"✅ Foto berhasil diunggah ke album dengan ID: {photo_id}")
 
-    # --- LANGKAH 2: Buat postingan di feed dengan melampirkan foto ---
     print("🟢 Langkah 2: Membuat postingan di timeline...")
     feed_post_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
     feed_payload = {
@@ -89,17 +77,31 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
         'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}',
         'access_token': access_token
     }
-
     r_feed = requests.post(feed_post_url, data=feed_payload)
-
-    # --- TAMBAHAN DEBUGGING ---
-    print("📢 Respons dari post ke feed:")
-    print(r_feed.json()) # Kita print juga respons dari feed
-    # -------------------------
-
-    r_feed.raise_for_status()
-    print("✅ Postingan berhasil dipublikasikan ke timeline!")
+    if r_feed.status_code != 200:
+        print(f"❌ Gagal posting ke feed: {r_feed.text}")
+        r_feed.raise_for_status()
     
+    post_id = r_feed.json()['id']
+    print(f"✅ Postingan berhasil dipublikasikan ke timeline dengan ID: {post_id}")
+    return post_id
+
+def posting_komentar(post_id: str, pesan_komentar: str):
+    access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
+    print(f"🟢 Langkah 3: Memposting komentar ke post ID: {post_id}...")
+    comment_url = f"https://graph.facebook.com/v20.0/{post_id}/comments"
+    comment_payload = {
+        'message': pesan_komentar,
+        'access_token': access_token
+    }
+    r_comment = requests.post(comment_url, data=comment_payload)
+    if r_comment.status_code != 200:
+        print(f"❌ Gagal posting komentar: {r_comment.text}")
+        r_comment.raise_for_status()
+        
+    print("✅ Komentar berhasil ditambahkan!")
+
+
 if __name__ == "__main__":
     try:
         print("🟢 Memulai proses autoposting...")
@@ -136,6 +138,7 @@ if __name__ == "__main__":
 
 {tags} {tag_umum}"""
 
+        # --- PERUBAHAN DI SINI ---
         caption_template_2 = f"""⊹ ࣪ ﹏𓊝﹏𓂁﹏⊹ ࣪ ˖
 
 ╭───────── 𝄞⨾𓍢ִ໋,♫,♪
@@ -156,9 +159,12 @@ if __name__ == "__main__":
         pesan_post = random.choice(list_of_captions)
         print(f"Template caption yang terpilih: \n{pesan_post}")
 
-        # Memanggil fungsi posting yang sudah diperbaiki
-        posting_ke_facebook(pesan_post, url_cover_album)
+        post_id = posting_ke_facebook(pesan_post, url_cover_album)
 
-        print(f"✅ Proses 'Day {day_number}' selesai.")
+        if post_id:
+            pesan_komentar = f"Hey guys! Di Day {day_number}, aku share lagu dari {nama_artis}. Menurut kalian gimana lagunya? Ada vibe yang sama di playlist kalian nggak? 🎧"
+            posting_komentar(post_id, pesan_komentar)
+
+        print(f"✅ Proses 'Day {day_number}' selesai dengan sukses.")
     except Exception as e:
         print(f"❌ Error terdeteksi: {e}")
