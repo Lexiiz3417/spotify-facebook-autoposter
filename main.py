@@ -39,7 +39,6 @@ def dapatkan_lagu_dari_playlist() -> Tuple[str, str, str, str, str]:
     genres = artist_response.json().get('genres', [])
     genre_utama = genres[0] if genres else "Music"
 
-    # --- PERBAIKAN DI SINI ---
     print(f"Lagu terpilih: {nama_lagu} oleh {nama_artis} | Genre: {genre_utama}")
     return nama_lagu, nama_artis, url_spotify, url_cover_album, genre_utama
 
@@ -54,38 +53,31 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
         print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
 
-def posting_ke_facebook(pesan: str, url_gambar: str, day_number: int, artist_name: str):
-    album_id, page_id, access_token = os.environ.get('FACEBOOK_ALBUM_ID'), os.environ.get('FACEBOOK_PAGE_ID'), os.environ.get('FACEBOOK_ACCESS_TOKEN')
+# --- FUNGSI POSTING PALING SIMPEL & FOKUS KE TIMELINE ---
+def posting_ke_timeline(pesan: str, url_gambar: str):
+    page_id = os.environ.get('FACEBOOK_PAGE_ID')
+    access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    print(f"🟢 Langkah A: Mengunggah foto ke album ID: {album_id}...")
-    upload_url = f"https://graph.facebook.com/v20.0/{album_id}/photos"
-    upload_params = {'url': url_gambar, 'published': 'false', 'access_token': access_token}
-    upload_response = requests.post(upload_url, params=upload_params)
-    upload_response.raise_for_status()
-    photo_id = upload_response.json()['id']
-    print(f"Foto berhasil diunggah: {photo_id}")
-
-    print("🟢 Langkah B: Posting ke feed...")
-    feed_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
-    feed_params = {'message': pesan, 'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}', 'access_token': access_token}
-    feed_response = requests.post(feed_url, params=feed_params)
-    feed_response.raise_for_status()
-    post_id = feed_response.json()['id']
-    print(f"Berhasil posting di feed: {post_id}")
-
-    print(f"🟢 Langkah C: Auto-komen...")
-    comment_url = f"https://graph.facebook.com/v20.0/{post_id}/comments"
-    comment_message = f"Hey guys! Di Day {day_number}, aku share lagu dari {artist_name}. Menurut kalian gimana lagunya? Ada vibe yang sama di playlist kalian nggak? 🎧"
-    comment_params = {'message': comment_message, 'access_token': access_token}
-    comment_response = requests.post(comment_url, params=comment_params)
-    comment_response.raise_for_status()
-    print("Komentar berhasil dikirim.")
+    print(f"🟢 Memposting foto dan caption ke timeline halaman...")
+    # Langsung menargetkan endpoint /photos dari Halaman
+    # Ini akan membuat postingan di timeline dan juga memasukkan foto ke "Unggahan Seluler" atau album default
+    upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+    
+    params = {
+        'url': url_gambar,
+        'caption': pesan,
+        'access_token': access_token
+    }
+    
+    response = requests.post(upload_url, params=params)
+    response.raise_for_status()
+    print("✅ Foto berhasil diunggah dan diposting ke timeline!")
 
 
 if __name__ == "__main__":
     try:
         print("🟢 Memulai proses autoposting...")
-        start_date = date(2025, 7, 8)
+        start_date = date(2025, 7, 8) # Ganti tanggal ini untuk reset Day 1
         today_date = date.today()
         day_number = (today_date - start_date).days + 1
 
@@ -137,7 +129,8 @@ if __name__ == "__main__":
         pesan_post = random.choice(list_of_captions)
         print(f"Template caption yang terpilih: \n{pesan_post}")
 
-        posting_ke_facebook(pesan_post, url_cover_album, day_number, nama_artis)
+        # Memanggil fungsi posting yang paling simpel
+        posting_ke_timeline(pesan_post, url_cover_album)
 
         print(f"✅ Postingan 'Day {day_number}' berhasil dipublikasikan.")
     except Exception as e:
