@@ -59,8 +59,6 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
     print(f"🟢 Memposting foto dan caption ke timeline halaman...")
-    # Langsung menargetkan endpoint /photos dari Halaman
-    # Ini akan membuat postingan di timeline dan juga memasukkan foto ke "Unggahan Seluler" atau album default
     upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
     
     params = {
@@ -73,17 +71,17 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
     response.raise_for_status()
     print("✅ Foto berhasil diunggah dan diposting ke timeline!")
 
+
 if __name__ == "__main__":
     try:
         print("🟢 Memulai proses autoposting...")
-        start_date = date(2025, 7, 8) # Ganti tanggal ini untuk reset Day 1
+        start_date = date(2025, 7, 8)
         today_date = date.today()
         day_number = (today_date - start_date).days + 1
 
         nama_lagu, nama_artis, url_spotify, url_cover_album, genre_utama = dapatkan_lagu_dari_playlist()
         url_universal = dapatkan_songlink_dari_spotify(url_spotify)
         
-        # --- LOGIKA UNTUK MEMBUAT CAPTION (TETAP SAMA) ---
         genre_lower = genre_utama.lower()
         if "lo-fi" in genre_lower or "chill" in genre_lower: mood, tags = "🌙 Chill vibes detected!", "#LoFi #ChillBeats"
         elif "rock" in genre_lower or "punk" in genre_lower: mood, tags = "⚡ Rock the day!", "#RockOn #AltRock"
@@ -95,7 +93,6 @@ if __name__ == "__main__":
         else: mood, tags = "🎶 Your song of the day!", "#Vibes"
         tag_umum = "#MusicDiscovery #SongOfTheDay #NowPlaying"
 
-        # --- MEMBUAT DUA TEMPLATE CAPTION LENGKAP ---
         caption_template_1 = f"""/ᐠ - ˕ -マ ⛧°. ⋆༺☾༻⋆. °⛧
 ╭∪─∪────────── 𝄞⨾𓍢ִ໋,♫,♪
 ┊ {mood}
@@ -126,7 +123,8 @@ if __name__ == "__main__":
 
 {tags} {tag_umum}"""
 
-        list_of_captions = [caption_template_1, caption_caption_template_2]
+        # --- PERBAIKAN DI SINI ---
+        list_of_captions = [caption_template_1, caption_template_2]
         pesan_post = random.choice(list_of_captions)
         print(f"Template caption yang terpilih: \n{pesan_post}")
 
