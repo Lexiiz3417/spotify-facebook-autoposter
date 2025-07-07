@@ -91,21 +91,20 @@ if __name__ == "__main__":
             mood, tags = "\ud83c\udfb6 Your song of the day!", "#Vibes"
 
         tag_umum = "#MusicDiscovery #SongOfTheDay #NowPlaying"
-        caption_template = f"""
-/\u12a0 - \u02d5 -\u30de \u26e7\u00b0. \u22c6\u0f3a\u260e\u0f3b\u22c6. \u00b0\u26e7
-\u251d\u222a\u2500\u222a\u2500\u222a\u2500\u222a\u2227\u2500\u2500\u2500\u2500\u2500  \ud834\udd1e\u2a3e\u1312\u0f34,\u266b,\u266a
+caption_template = f"""/\u1020 - \u02d5 -\u30de \u26e7\u00b0. \u22c6\u0f3a\u263e\u0f3b\u22c6. \u00b0\u26e7
+\u250d\u222a\u2500\u222a\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \ud834\udd1e\u2a7e\u1313\u05d3\u0ed3,\u266b,\u266a
 \u2503 {mood}
-\u2503 Day {day_number} – Music Pick \ud83c\udfa7
+\u2503 Day {day_number} – Music Pick 🎧
 \u2503
-\u2503   \ud83c\udfb5 {nama_lagu}
-\u2503   \ud83c\udfa4 {nama_artis}
-\u2503   \ud83c\udfbc Genre: {genre_utama.title()}
+\u2503   🎵 {nama_lagu}
+\u2503   🎴 {nama_artis}
+\u2503   🎼 Genre: {genre_utama.title()}
 \u2503
 \u2503 Listen Now:
 \u2503 {url_universal}
-\u2518\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \ud834\udd1e\u2a3e\u1312\u0f34,\u266b,\u266a
+\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \ud834\udd1e\u2a7e\u1313\u05d3\u0ed3,\u266b,\u266a
 
-{tags} {tag_umum}"
+{tags} {tag_umum}"""
 
         pesan_post = caption_template.strip()
         posting_ke_facebook(pesan_post, url_cover_album)
