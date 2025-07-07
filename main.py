@@ -53,26 +53,38 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
         print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
 
-# --- FUNGSI POSTING PALING SIMPEL & FOKUS KE TIMELINE ---
+# --- FUNGSI POSTING BARU DENGAN 2 LANGKAH ---
 def posting_ke_facebook(pesan: str, url_gambar: str):
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    print(f"🟢 Memposting foto dan caption ke timeline halaman...")
-    upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
-    
-    # --- PERBAIKAN DI SINI ---
-    # Mengirim payload sebagai 'data' bukan 'params' agar terposting ke timeline
-    payload = {
+    # --- LANGKAH 1: Upload foto sebagai "unpublished" ---
+    print("🟢 Langkah 1: Mengunggah foto sebagai unpublished...")
+    photo_upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+    photo_payload = {
         'url': url_gambar,
-        'caption': pesan,
-        'access_token': access_token,
-        'published': 'true' 
+        'published': 'false',  # Kuncinya di sini
+        'access_token': access_token
     }
     
-    response = requests.post(upload_url, data=payload)
-    response.raise_for_status()
-    print("✅ Foto berhasil diunggah dan diposting ke timeline!")
+    r_photo = requests.post(photo_upload_url, data=photo_payload)
+    r_photo.raise_for_status()
+    photo_data = r_photo.json()
+    photo_id = photo_data['id']
+    print(f"✅ Foto berhasil diunggah dengan ID: {photo_id}")
+
+    # --- LANGKAH 2: Buat postingan di feed dengan melampirkan foto ---
+    print("🟢 Langkah 2: Membuat postingan di feed...")
+    feed_post_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
+    feed_payload = {
+        'message': pesan,
+        'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}', # Lampirkan foto pake ID
+        'access_token': access_token
+    }
+
+    r_feed = requests.post(feed_post_url, data=feed_payload)
+    r_feed.raise_for_status()
+    print("✅ Postingan berhasil dipublikasikan ke timeline!")
 
 
 if __name__ == "__main__":
@@ -133,6 +145,6 @@ if __name__ == "__main__":
         # Memanggil fungsi posting yang sudah diperbaiki
         posting_ke_facebook(pesan_post, url_cover_album)
 
-        print(f"✅ Postingan 'Day {day_number}' berhasil dipublikasikan.")
+        print(f"✅ Proses 'Day {day_number}' selesai.")
     except Exception as e:
         print(f"❌ Error terdeteksi: {e}")
