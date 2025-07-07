@@ -53,14 +53,19 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
         print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
 
+# --- FUNGSI POSTING DENGAN ALUR SEDERHANA UNTUK TES ---
 def posting_ke_facebook(pesan: str, url_gambar: str) -> Optional[str]:
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
-    album_id = os.environ.get('FACEBOOK_ALBUM_ID')
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    print(f"🟢 Langkah 1: Mengunggah foto ke album ID: {album_id}...")
-    photo_upload_url = f"https://graph.facebook.com/v20.0/{album_id}/photos"
-    photo_payload = {'url': url_gambar, 'access_token': access_token}
+    # --- PERCOBAAN: Upload foto sebagai "unpublished" langsung ke Page, bukan ke album spesifik ---
+    print(f"🟢 Langkah 1 (TES): Mengunggah foto unpublished ke Page ID: {page_id}...")
+    photo_upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+    photo_payload = {
+        'url': url_gambar,
+        'published': 'false', # Upload tanpa mempublikasikan
+        'access_token': access_token
+    }
     
     r_photo = requests.post(photo_upload_url, data=photo_payload)
     if r_photo.status_code != 200:
@@ -68,8 +73,9 @@ def posting_ke_facebook(pesan: str, url_gambar: str) -> Optional[str]:
         r_photo.raise_for_status()
 
     photo_id = r_photo.json()['id']
-    print(f"✅ Foto berhasil diunggah ke album dengan ID: {photo_id}")
+    print(f"✅ Foto berhasil diunggah dengan ID: {photo_id}")
 
+    # LANGKAH 2: Buat postingan di feed dengan melampirkan foto (Tetap sama)
     print("🟢 Langkah 2: Membuat postingan di timeline...")
     feed_post_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
     feed_payload = {
@@ -122,6 +128,9 @@ if __name__ == "__main__":
         elif "sad" in genre_lower or "acoustic" in genre_lower or "piano" in genre_lower: mood, tags = "🌧️ Soft, emotional tune", "#SadSongs #AcousticVibes"
         else: mood, tags = "🎶 Your song of the day!", "#Vibes"
         tag_umum = "#MusicDiscovery #SongOfTheDay #NowPlaying"
+        
+        # --- PERBAIKAN LOGIKA GENRE ---
+        genre_caption = f"   🎼 Genre: {genre_utama.title()}" if genre_utama != "Music" else ""
 
         caption_template_1 = f"""/ᐠ - ˕ -マ ⛧°. ⋆༺☾༻⋆. °⛧
 ╭∪─∪────────── 𝄞⨾𓍢ִ໋,♫,♪
@@ -130,7 +139,7 @@ if __name__ == "__main__":
 ┊
 ┊   🎵 {nama_lagu}
 ┊   🎤 {nama_artis}
-┊   🎼 Genre: {genre_utama.title()}
+{genre_caption}
 ┊
 ┊ Listen Now:
 ┊ {url_universal}
@@ -138,7 +147,6 @@ if __name__ == "__main__":
 
 {tags} {tag_umum}"""
 
-        # --- PERUBAHAN DI SINI ---
         caption_template_2 = f"""⊹ ࣪ ﹏𓊝﹏𓂁﹏⊹ ࣪ ˖
 
 ╭───────── 𝄞⨾𓍢ִ໋,♫,♪
@@ -147,13 +155,17 @@ if __name__ == "__main__":
 ┊
 ┊   🎵 {nama_lagu}
 ┊   🎤 {nama_artis}
-┊   🎼 Genre: {genre_utama.title()}
+{genre_caption}
 ┊
 ┊ Listen Now:
 ┊ {url_universal}
 ╰─────────  𝄞⨾𓍢ִ໋,♫,♪
 
 {tags} {tag_umum}"""
+
+        # Menghapus baris kosong jika genre tidak ada
+        caption_template_1 = os.linesep.join([s for s in caption_template_1.splitlines() if s.strip() != ""])
+        caption_template_2 = os.linesep.join([s for s in caption_template_2.splitlines() if s.strip() != ""])
 
         list_of_captions = [caption_template_1, caption_template_2]
         pesan_post = random.choice(list_of_captions)
