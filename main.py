@@ -53,17 +53,21 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
         print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
 
-# --- FUNGSI POSTING BARU DENGAN 2 LANGKAH ---
+# --- FUNGSI POSTING BARU DENGAN TARGET ALBUM & TIMELINE ---
 def posting_ke_facebook(pesan: str, url_gambar: str):
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
+    album_id = os.environ.get('FACEBOOK_ALBUM_ID') # Ambil ID Album dari secret
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    # --- LANGKAH 1: Upload foto sebagai "unpublished" ---
-    print("🟢 Langkah 1: Mengunggah foto sebagai unpublished...")
-    photo_upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+    # --- LANGKAH 1: Upload foto ke ALBUM SPESIFIK ---
+    print(f"🟢 Langkah 1: Mengunggah foto ke album ID: {album_id}...")
+    # Ganti endpoint untuk menargetkan album secara spesifik
+    photo_upload_url = f"https://graph.facebook.com/v20.0/{album_id}/photos"
+    
     photo_payload = {
         'url': url_gambar,
-        'published': 'false',  # Kuncinya di sini
+        # 'published' tidak diperlukan lagi karena kita akan buat postingan terpisah
+        # Cukup upload ke album, lalu ID fotonya kita pakai
         'access_token': access_token
     }
     
@@ -71,10 +75,10 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
     r_photo.raise_for_status()
     photo_data = r_photo.json()
     photo_id = photo_data['id']
-    print(f"✅ Foto berhasil diunggah dengan ID: {photo_id}")
+    print(f"✅ Foto berhasil diunggah ke album dengan ID: {photo_id}")
 
     # --- LANGKAH 2: Buat postingan di feed dengan melampirkan foto ---
-    print("🟢 Langkah 2: Membuat postingan di feed...")
+    print("🟢 Langkah 2: Membuat postingan di timeline...")
     feed_post_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
     feed_payload = {
         'message': pesan,
@@ -126,13 +130,14 @@ if __name__ == "__main__":
         caption_template_2 = f"""⊹ ࣪ ﹏𓊝﹏𓂁﹏⊹ ࣪ ˖
 
 ╭───────── 𝄞⨾𓍢ִ໋,♫,♪
-┊ {mood.upper()}
-┊ DAY {day_number}
+┊ {mood}
+┊ Day {day_number} – Music Pick 🎧
 ┊
-┊ Now Playing:
-┊ {nama_lagu} — {nama_artis}
-┊ ({genre_utama.title()})
+┊   🎵 {nama_lagu}
+┊   🎤 {nama_artis}
+┊   🎼 Genre: {genre_utama.title()}
 ┊
+┊ Listen Now:
 ┊ {url_universal}
 ╰─────────  𝄞⨾𓍢ִ໋,♫,♪
 
