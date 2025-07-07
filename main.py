@@ -4,7 +4,9 @@ import random
 from datetime import date
 from typing import Tuple, Optional
 
+# --- SEMUA FUNGSI DI ATAS INI TETAP SAMA ---
 def dapatkan_lagu_dari_playlist() -> Tuple[str, str, str, str, str]:
+    # ... (tidak ada perubahan di sini)
     client_id = os.environ.get('SPOTIFY_CLIENT_ID')
     client_secret = os.environ.get('SPOTIFY_CLIENT_SECRET')
     playlist_id = os.environ.get('SPOTIFY_PLAYLIST_ID')
@@ -43,6 +45,7 @@ def dapatkan_lagu_dari_playlist() -> Tuple[str, str, str, str, str]:
     return nama_lagu, nama_artis, url_spotify, url_cover_album, genre_utama
 
 def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
+    # ... (tidak ada perubahan di sini)
     print(f"🟢 Mengonversi link Spotify...")
     api_endpoint = "https://api.song.link/v1-alpha.1/links"
     try:
@@ -52,47 +55,55 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
     except requests.RequestException as e:
         print(f"❌ Gagal mengonversi link, error: {e}")
     return spotify_url
+# ---------------------------------------------
 
-# --- FUNGSI POSTING DENGAN ALUR SEDERHANA UNTUK TES ---
+
+# --- FUNGSI POSTING "JALAN PINTAS" ---
 def posting_ke_facebook(pesan: str, url_gambar: str) -> Optional[str]:
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
+    album_id = os.environ.get('FACEBOOK_ALBUM_ID') # Kita coba pakai album_id di sini
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
-    # --- PERCOBAAN: Upload foto sebagai "unpublished" langsung ke Page, bukan ke album spesifik ---
-    print(f"🟢 Langkah 1 (TES): Mengunggah foto unpublished ke Page ID: {page_id}...")
-    photo_upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
-    photo_payload = {
+    print("🟢 Mencoba metode 'Jalan Pintas'...")
+    # Kita tembak langsung ke endpoint album untuk upload dan publish
+    # Ini cara yang lebih 'tua' tapi kita coba lagi dengan token baru
+    # Jika album_id ada, targetkan ke album. Jika tidak, ke page.
+    target_id = album_id if album_id else page_id
+    
+    print(f"🟢 Menargetkan ID: {target_id} untuk posting foto...")
+    photo_upload_url = f"https://graph.facebook.com/v20.0/{target_id}/photos"
+    
+    payload = {
         'url': url_gambar,
-        'published': 'false', # Upload tanpa mempublikasikan
+        'caption': pesan, # 'caption' adalah parameter resmi untuk endpoint ini
+        'published': 'true',
         'access_token': access_token
     }
     
-    r_photo = requests.post(photo_upload_url, data=photo_payload)
+    r_photo = requests.post(photo_upload_url, data=payload)
+
+    print(f"📢 Respons dari 'Jalan Pintas': {r_photo.json()}")
+
     if r_photo.status_code != 200:
-        print(f"❌ Gagal upload foto: {r_photo.text}")
+        print(f"❌ Gagal dengan metode 'Jalan Pintas': {r_photo.text}")
         r_photo.raise_for_status()
 
-    photo_id = r_photo.json()['id']
-    print(f"✅ Foto berhasil diunggah dengan ID: {photo_id}")
+    response_data = r_photo.json()
+    # Endpoint ini mengembalikan 'post_id' jika berhasil dipublikasikan ke timeline
+    post_id = response_data.get('post_id')
 
-    # LANGKAH 2: Buat postingan di feed dengan melampirkan foto (Tetap sama)
-    print("🟢 Langkah 2: Membuat postingan di timeline...")
-    feed_post_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
-    feed_payload = {
-        'message': pesan,
-        'attached_media[0]': f'{{"media_fbid":"{photo_id}"}}',
-        'access_token': access_token
-    }
-    r_feed = requests.post(feed_post_url, data=feed_payload)
-    if r_feed.status_code != 200:
-        print(f"❌ Gagal posting ke feed: {r_feed.text}")
-        r_feed.raise_for_status()
+    if post_id:
+        print(f"✅ SUKSES! Postingan muncul di timeline dengan post_id: {post_id}")
+    else:
+        print("⚠️ Postingan berhasil di-upload tapi mungkin tidak muncul di timeline.")
+        # Kita ambil id foto sebagai fallback untuk komentar
+        post_id = response_data.get('id')
     
-    post_id = r_feed.json()['id']
-    print(f"✅ Postingan berhasil dipublikasikan ke timeline dengan ID: {post_id}")
     return post_id
 
+# --- FUNGSI KOMENTAR TETAP SAMA ---
 def posting_komentar(post_id: str, pesan_komentar: str):
+    # ... (tidak ada perubahan di sini)
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     print(f"🟢 Langkah 3: Memposting komentar ke post ID: {post_id}...")
     comment_url = f"https://graph.facebook.com/v20.0/{post_id}/comments"
@@ -106,10 +117,13 @@ def posting_komentar(post_id: str, pesan_komentar: str):
         r_comment.raise_for_status()
         
     print("✅ Komentar berhasil ditambahkan!")
+# ---------------------------------------------
 
 
+# --- BAGIAN BAWAH (MAIN) JUGA TETAP SAMA ---
 if __name__ == "__main__":
     try:
+        # ... (tidak ada perubahan di sini)
         print("🟢 Memulai proses autoposting...")
         start_date = date(2025, 7, 8)
         today_date = date.today()
@@ -129,7 +143,6 @@ if __name__ == "__main__":
         else: mood, tags = "🎶 Your song of the day!", "#Vibes"
         tag_umum = "#MusicDiscovery #SongOfTheDay #NowPlaying"
         
-        # --- PERBAIKAN LOGIKA GENRE ---
         genre_caption = f"   🎼 Genre: {genre_utama.title()}" if genre_utama != "Music" else ""
 
         caption_template_1 = f"""/ᐠ - ˕ -マ ⛧°. ⋆༺☾༻⋆. °⛧
@@ -163,7 +176,6 @@ if __name__ == "__main__":
 
 {tags} {tag_umum}"""
 
-        # Menghapus baris kosong jika genre tidak ada
         caption_template_1 = os.linesep.join([s for s in caption_template_1.splitlines() if s.strip() != ""])
         caption_template_2 = os.linesep.join([s for s in caption_template_2.splitlines() if s.strip() != ""])
 
@@ -180,3 +192,4 @@ if __name__ == "__main__":
         print(f"✅ Proses 'Day {day_number}' selesai dengan sukses.")
     except Exception as e:
         print(f"❌ Error terdeteksi: {e}")
+# ---------------------------------------------
