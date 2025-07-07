@@ -61,14 +61,16 @@ def posting_ke_facebook(pesan: str, url_gambar: str):
     print(f"🟢 Memposting foto dan caption ke timeline halaman...")
     upload_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
     
-    params = {
+    # --- PERBAIKAN DI SINI ---
+    # Mengirim payload sebagai 'data' bukan 'params' agar terposting ke timeline
+    payload = {
         'url': url_gambar,
         'caption': pesan,
         'access_token': access_token,
-        'published': 'true'
+        'published': 'true' 
     }
     
-    response = requests.post(upload_url, params=params)
+    response = requests.post(upload_url, data=payload)
     response.raise_for_status()
     print("✅ Foto berhasil diunggah dan diposting ke timeline!")
 
@@ -124,12 +126,11 @@ if __name__ == "__main__":
 
 {tags} {tag_umum}"""
 
-        # --- PERBAIKAN DI SINI ---
         list_of_captions = [caption_template_1, caption_template_2]
         pesan_post = random.choice(list_of_captions)
         print(f"Template caption yang terpilih: \n{pesan_post}")
 
-        # Memanggil fungsi posting yang paling simpel
+        # Memanggil fungsi posting yang sudah diperbaiki
         posting_ke_facebook(pesan_post, url_cover_album)
 
         print(f"✅ Postingan 'Day {day_number}' berhasil dipublikasikan.")
