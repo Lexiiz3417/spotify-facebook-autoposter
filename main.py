@@ -54,7 +54,7 @@ def dapatkan_songlink_dari_spotify(spotify_url: str) -> str:
     return spotify_url
 
 # --- FUNGSI POSTING PALING SIMPEL & FOKUS KE TIMELINE ---
-def posting_ke_timeline(pesan: str, url_gambar: str):
+def posting_ke_facebook(pesan: str, url_gambar: str):
     page_id = os.environ.get('FACEBOOK_PAGE_ID')
     access_token = os.environ.get('FACEBOOK_ACCESS_TOKEN')
     
@@ -73,7 +73,6 @@ def posting_ke_timeline(pesan: str, url_gambar: str):
     response.raise_for_status()
     print("✅ Foto berhasil diunggah dan diposting ke timeline!")
 
-
 if __name__ == "__main__":
     try:
         print("🟢 Memulai proses autoposting...")
@@ -84,6 +83,7 @@ if __name__ == "__main__":
         nama_lagu, nama_artis, url_spotify, url_cover_album, genre_utama = dapatkan_lagu_dari_playlist()
         url_universal = dapatkan_songlink_dari_spotify(url_spotify)
         
+        # --- LOGIKA UNTUK MEMBUAT CAPTION (TETAP SAMA) ---
         genre_lower = genre_utama.lower()
         if "lo-fi" in genre_lower or "chill" in genre_lower: mood, tags = "🌙 Chill vibes detected!", "#LoFi #ChillBeats"
         elif "rock" in genre_lower or "punk" in genre_lower: mood, tags = "⚡ Rock the day!", "#RockOn #AltRock"
@@ -95,6 +95,7 @@ if __name__ == "__main__":
         else: mood, tags = "🎶 Your song of the day!", "#Vibes"
         tag_umum = "#MusicDiscovery #SongOfTheDay #NowPlaying"
 
+        # --- MEMBUAT DUA TEMPLATE CAPTION LENGKAP ---
         caption_template_1 = f"""/ᐠ - ˕ -マ ⛧°. ⋆༺☾༻⋆. °⛧
 ╭∪─∪────────── 𝄞⨾𓍢ִ໋,♫,♪
 ┊ {mood}
@@ -125,12 +126,12 @@ if __name__ == "__main__":
 
 {tags} {tag_umum}"""
 
-        list_of_captions = [caption_template_1, caption_template_2]
+        list_of_captions = [caption_template_1, caption_caption_template_2]
         pesan_post = random.choice(list_of_captions)
         print(f"Template caption yang terpilih: \n{pesan_post}")
 
         # Memanggil fungsi posting yang paling simpel
-        posting_ke_timeline(pesan_post, url_cover_album)
+        posting_ke_facebook(pesan_post, url_cover_album)
 
         print(f"✅ Postingan 'Day {day_number}' berhasil dipublikasikan.")
     except Exception as e:
